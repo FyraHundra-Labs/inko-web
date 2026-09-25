@@ -20,17 +20,14 @@ const assert = require("node:assert/strict");
 	await page.locator('.header [data-action="people"]').click();
 	for (const name of ["Mom", "Dad", "Sofia", "<img src=x onerror=alert(1)>"]) {
 		await page.getByLabel("Name", { exact: true }).fill(name);
+		await page.getByLabel("Streak (days)").fill("7");
 		await page.getByRole("button", { name: "Add", exact: true }).click();
 	}
 	let state = await page.evaluate(() =>
 		JSON.parse(localStorage.getItem("inko-creator-demo-v1")),
 	);
 	assert.equal(state.people.length, 4);
-	assert(
-		state.people.every(
-			(p) => p.streak >= 1 && p.streak <= 10 && p.emoji.length === 1,
-		),
-	);
+	assert(state.people.every((p) => p.streak === 7 && p.emoji[0] === "😊"));
 	await page.getByRole("button", { name: "Start recording mode" }).click();
 	await expect(page.locator(".person")).toHaveCount(4);
 	assert.equal(await page.locator("img").count(), 0);
@@ -43,6 +40,30 @@ const assert = require("node:assert/strict");
 	await page.locator(".celebration").waitFor();
 	await page.reload();
 	assert.equal(await page.locator(".own-emojis").textContent(), "😊😎😴");
+
+	await page.getByRole("button", { name: "Mom", exact: true }).click();
+	await page.getByLabel("Streak (days)").fill("11");
+	await page.getByRole("button", { name: "Save", exact: true }).click();
+	await expect(page.locator("#modal")).toBeVisible();
+	assert.equal(
+		await page.getByLabel("Streak (days)").evaluate((el) => el.validity.valid),
+		false,
+	);
+	await page.getByLabel("Streak (days)").fill("10");
+	await page.locator(".contact-emojis summary").click();
+	await page.getByRole("button", { name: "🐶", exact: true }).click();
+	await page.getByRole("button", { name: "😊", exact: true }).click();
+	await page.getByRole("button", { name: "❤️", exact: true }).click();
+	await page.getByRole("button", { name: "☕", exact: true }).click();
+	await page.getByRole("button", { name: "😎", exact: true }).click();
+	await expect(page.locator('[aria-pressed="true"]')).toHaveCount(3);
+	await page.getByRole("button", { name: "Save", exact: true }).click();
+	await page.reload();
+	state = await page.evaluate(() =>
+		JSON.parse(localStorage.getItem("inko-creator-demo-v1")),
+	);
+	assert.deepEqual(state.people[0].emoji, ["🐶", "❤️", "☕"]);
+	assert.equal(state.people[0].streak, 10);
 	await page.getByRole("button", { name: "Mom", exact: true }).click();
 	await page
 		.getByRole("button", { name: "Clear check-in", exact: true })
@@ -64,7 +85,7 @@ const assert = require("node:assert/strict");
 	await page.locator(".heart").waitFor();
 	await page.screenshot({ path: "/tmp/inko-demo-home.png" });
 	await page.locator('.header [data-action="people"]').click();
-	await page.locator("summary").click();
+	await page.locator(".tools summary").click();
 	await page
 		.getByRole("button", { name: "Reset check-ins", exact: true })
 		.click();
@@ -73,10 +94,15 @@ const assert = require("node:assert/strict");
 	);
 	assert.equal(state.own.length, 0);
 	assert(state.people.every((p) => p.emoji.length === 0));
-	await page.locator("summary").click();
+	await page.locator(".tools summary").click();
 	await page
 		.getByRole("button", { name: "Check everyone in", exact: true })
 		.click();
+	state = await page.evaluate(() =>
+		JSON.parse(localStorage.getItem("inko-creator-demo-v1")),
+	);
+	assert.deepEqual(state.people[0].emoji, ["🐶", "❤️", "☕"]);
+	assert.equal(state.people[0].streak, 10);
 	await page.getByRole("button", { name: "Start recording mode" }).click();
 	await page.evaluate(() => navigator.serviceWorker.ready);
 	await page.reload();
@@ -113,7 +139,7 @@ const assert = require("node:assert/strict");
 	assert.equal(manifest.display, "standalone");
 	assert.deepEqual(errors, []);
 	console.log(
-		"PASS: creation, safe names, random data, premium selection, check-ins, language persistence, reset, offline reload, mobile widths, manifest, no browser errors.",
+		"PASS: creation, safe names, chosen contact emojis and streaks, premium selection, check-ins, language persistence, reset, offline reload, mobile widths, manifest, no browser errors.",
 	);
 	await browser.close();
 })().catch((error) => {

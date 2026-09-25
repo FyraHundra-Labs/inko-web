@@ -1,4 +1,4 @@
-const CACHE = "inko-demo-v1";
+const CACHE = "inko-demo-v2";
 const ASSETS = [
 	"/demo/",
 	"/demo/index.html",

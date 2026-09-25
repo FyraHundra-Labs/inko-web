@@ -458,3 +458,21 @@ dialog::backdrop {
 		display: none;
 	}
 }
+
+.contact-fields {
+	margin-top: 20px;
+}
+.contact-emojis {
+	margin-top: 20px;
+}
+.contact-emojis summary {
+	cursor: pointer;
+	font-size: 18px;
+	padding: 8px 0;
+}
+.emoji-preview {
+	margin-left: 8px;
+}
+.contact-emojis .emoji-grid {
+	margin-bottom: 16px;
+}

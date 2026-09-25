@@ -7,10 +7,10 @@ Serve the repo locally with `python3 -m http.server 8080`, then visit `http://lo
 ## Creator flow
 
 1. Open `/demo/` in Safari on iPhone or Chrome on Android and add it to the Home Screen using the initial instructions.
-2. Launch the Inko icon. Open the people icon and add fictional people by name. Each starts checked in with a random premium emoji and a streak from 1–10.
+2. Launch the Inko icon. Open the people icon and add fictional people by name. Choose one to three premium check-in emojis and a streak from 1–10 for each person.
 3. Tap **Start recording mode** to return to the clean circle screen, then use the phone's screen recorder.
 4. Tap the heart to pick up to three emojis from the native app's full premium set. There is no circle-size limit.
-5. Tap a person to rename, check in again, clear their check-in, or remove them. The people screen also has expandable creator tools for clearing all check-ins or checking everyone in. Resetting preserves names and streaks for repeat takes.
+5. Tap a person to edit their name, emojis, or streak, check in again, clear their check-in, or remove them. The people screen also has expandable creator tools for clearing all check-ins or checking everyone in. Resetting preserves names, chosen emojis, and streaks for repeat takes. Checking everyone in restores their chosen emojis.
 6. Settings contains only the language picker (English, Swedish, Spanish, Portuguese).
 
 All state is local to the browser/PWA; there are no real accounts, contact imports, messages, purchases, or API calls. Browser and installed-app storage may differ, so prepare the final circle inside the installed app. A streak of 1 is stored but its badge is hidden, matching the native app's display rule. The demo does not roll dates or streaks forward automatically, keeping takes repeatable.
@@ -35,4 +35,4 @@ With the local server running and the native repo's Playwright dependencies inst
 node scripts/test-demo.cjs
 ```
 
-Checks cover fictional people, safe rendering of names, random streak bounds, the premium selection limit, check-in/reset flows, language persistence, offline reload, and narrow viewports in Chromium mobile emulation. Home Screen installation and real iOS keyboard/status bar behavior still need a physical-device check.
+Checks cover fictional people, safe rendering of names, chosen contact emojis and streak bounds, the premium selection limit, check-in/reset flows, language persistence, offline reload, and narrow viewports in Chromium mobile emulation. Home Screen installation and real iOS keyboard/status bar behavior still need a physical-device check.

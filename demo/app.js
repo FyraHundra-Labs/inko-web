@@ -10,10 +10,12 @@ const languages = {
 };
 const copy = {
 	en: {
+		emojiLabel: "Check-in emojis",
+		streakLabel: "Streak (days)",
 		tools: "Creator tools",
 		name: "Name",
 		placeholder: "e.g. Mom",
-		note: "Add fictional people for your recording. Each person starts checked in with a random emoji and a streak of 1–10 days.",
+		note: "Add fictional people for your recording. Choose up to three check-in emojis and a streak of 1–10 days.",
 		check: "Check in",
 		clear: "Clear check-in",
 		reset: "Reset check-ins",
@@ -39,10 +41,12 @@ const copy = {
 			"Your browser could not save this setup. Keep this page open while recording.",
 	},
 	sv: {
+		emojiLabel: "Incheckningsemojier",
+		streakLabel: "Svit (dagar)",
 		tools: "Skaparverktyg",
 		name: "Namn",
 		placeholder: "t.ex. Mamma",
-		note: "Lägg till fiktiva personer för din inspelning. Varje person får en slumpad emoji och en svit på 1–10 dagar.",
+		note: "Lägg till fiktiva personer för din inspelning. Välj upp till tre emojier och en svit på 1–10 dagar.",
 		check: "Checka in",
 		clear: "Ta bort incheckning",
 		reset: "Återställ incheckningar",
@@ -68,10 +72,12 @@ const copy = {
 			"Webbläsaren kunde inte spara. Håll sidan öppen under inspelningen.",
 	},
 	es: {
+		emojiLabel: "Emojis del registro",
+		streakLabel: "Racha (días)",
 		tools: "Herramientas de creación",
 		name: "Nombre",
 		placeholder: "p. ej. Mamá",
-		note: "Añade personas ficticias para tu grabación. Cada persona empieza con un emoji aleatorio y una racha de 1 a 10 días.",
+		note: "Añade personas ficticias para tu grabación. Elige hasta tres emojis y una racha de 1 a 10 días.",
 		check: "Registrar",
 		clear: "Borrar registro",
 		reset: "Reiniciar registros",
@@ -97,10 +103,12 @@ const copy = {
 			"El navegador no pudo guardar. Mantén esta página abierta mientras grabas.",
 	},
 	pt: {
+		emojiLabel: "Emojis do check-in",
+		streakLabel: "Sequência (dias)",
 		tools: "Ferramentas de criação",
 		name: "Nome",
 		placeholder: "ex.: Mãe",
-		note: "Adicione pessoas fictícias para sua gravação. Cada pessoa começa com um emoji aleatório e uma sequência de 1 a 10 dias.",
+		note: "Adicione pessoas fictícias para sua gravação. Escolha até três emojis e uma sequência de 1 a 10 dias.",
 		check: "Fazer check-in",
 		clear: "Limpar check-in",
 		reset: "Reiniciar check-ins",
@@ -126,7 +134,6 @@ const copy = {
 			"O navegador não conseguiu salvar. Mantenha esta página aberta durante a gravação.",
 	},
 };
-const random = (items) => items[Math.floor(Math.random() * items.length)];
 const streak = () => 1 + Math.floor(Math.random() * 10);
 const defaultState = () => ({
 	language: languages[navigator.language?.slice(0, 2)]
@@ -158,19 +165,29 @@ function load() {
 				value.ownStreak <= 10
 					? value.ownStreak
 					: streak(),
-			people: value.people.filter(
-				(p) =>
-					p &&
-					typeof p.id === "string" &&
-					typeof p.name === "string" &&
-					p.name.trim() &&
-					p.name.length <= 60 &&
-					Number.isInteger(p.streak) &&
-					p.streak >= 1 &&
-					p.streak <= 10 &&
-					validEmojis(p.emoji) &&
-					(p.at === null || Number.isFinite(p.at)),
-			),
+			people: value.people
+				.filter(
+					(p) =>
+						p &&
+						typeof p.id === "string" &&
+						typeof p.name === "string" &&
+						p.name.trim() &&
+						p.name.length <= 60 &&
+						Number.isInteger(p.streak) &&
+						p.streak >= 1 &&
+						p.streak <= 10 &&
+						validEmojis(p.emoji) &&
+						(p.at === null || Number.isFinite(p.at)),
+				)
+				.map((p) => ({
+					...p,
+					checkEmoji:
+						validEmojis(p.checkEmoji) && p.checkEmoji.length
+							? p.checkEmoji
+							: p.emoji.length
+								? [...p.emoji]
+								: ["😊"],
+				})),
 		};
 	} catch {
 		return fallback;
@@ -234,6 +251,38 @@ function navigate(page) {
 	if (location.hash === hash) render();
 	else location.hash = hash;
 }
+function contactFields(prefix, days = 1) {
+	return `<div class="contact-fields"><label class="label" for="${prefix}-streak">${c("streakLabel")}</label><input class="field" id="${prefix}-streak" type="number" inputmode="numeric" min="1" max="10" step="1" value="${days}" required><details class="contact-emojis"><summary>${c("emojiLabel")} <span class="emoji-preview"></span></summary><p class="subtitle">${t("emoji.subtitle")}</p><div class="emoji-grid">${emojis.map((e) => `<button type="button" class="emoji-option" data-emoji="${e}" aria-label="${e}" aria-pressed="false">${e}</button>`).join("")}</div></details></div>`;
+}
+function bindContactFields(form, initial) {
+	let selected = [...initial];
+	const paint = () => {
+		form.querySelector(".emoji-preview").textContent = selected.join(" ");
+		form.querySelectorAll("[data-emoji]").forEach((b) => {
+			const index = selected.indexOf(b.dataset.emoji);
+			b.setAttribute("aria-pressed", String(index !== -1));
+			b.innerHTML =
+				b.dataset.emoji +
+				(index !== -1 ? `<span class="badge">${index + 1}</span>` : "");
+		});
+	};
+	form.querySelectorAll("[data-emoji]").forEach((b) =>
+		b.addEventListener("click", () => {
+			const emoji = b.dataset.emoji;
+			// Keep at least one emoji so every contact can be checked in again.
+			selected = selected.includes(emoji)
+				? selected.length > 1
+					? selected.filter((e) => e !== emoji)
+					: selected
+				: selected.length < 3
+					? [...selected, emoji]
+					: selected;
+			paint();
+		}),
+	);
+	paint();
+	return () => [...selected];
+}
 function render() {
 	document.documentElement.lang = state.language;
 	if (currentPage() === "settings") {
@@ -241,7 +290,10 @@ function render() {
 		return;
 	}
 	if (currentPage() === "people") {
-		app.innerHTML = `<section class="page">${header(t("contacts.title"))}<form id="add-person"><label class="label" for="person-name">${c("name")}</label><input id="person-name" class="field" name="name" maxlength="60" placeholder="${c("placeholder")}" required autocomplete="off"><button class="primary" type="submit">${t("addPerson.add")}</button></form><p class="creator-note">${c("note")}</p>${storageFailed ? `<p class="error">${c("storage")}</p>` : ""}<div>${state.people.map((p) => `<div class="manage"><span>${escape(p.name)}</span><button data-person="${escape(p.id)}" aria-label="${escape(c("edit") + ": " + p.name)}">${c("edit")}</button></div>`).join("")}</div><details class="tools"><summary>${c("tools")}</summary>${action("check-all", c("checkAll"))}${action("reset", c("reset"))}<p class="creator-note">${c("resetHint")}</p><div class="install-only">${action("install", c("install"))}</div></details>${action("home", c("start"), "primary")}</section>`;
+		app.innerHTML = `<section class="page">${header(t("contacts.title"))}<form id="add-person"><label class="label" for="person-name">${c("name")}</label><input id="person-name" class="field" name="name" maxlength="60" placeholder="${c("placeholder")}" required autocomplete="off">${contactFields("person")}<button class="primary" type="submit">${t("addPerson.add")}</button></form><p class="creator-note">${c("note")}</p>${storageFailed ? `<p class="error">${c("storage")}</p>` : ""}<div>${state.people.map((p) => `<div class="manage"><span>${escape(p.name)}</span><button data-person="${escape(p.id)}" aria-label="${escape(c("edit") + ": " + p.name)}">${c("edit")}</button></div>`).join("")}</div><details class="tools"><summary>${c("tools")}</summary>${action("check-all", c("checkAll"))}${action("reset", c("reset"))}<p class="creator-note">${c("resetHint")}</p><div class="install-only">${action("install", c("install"))}</div></details>${action("home", c("start"), "primary")}</section>`;
+		const selection = bindContactFields(document.querySelector("#add-person"), [
+			"😊",
+		]);
 		document
 			.querySelector("#add-person")
 			.addEventListener("submit", (event) => {
@@ -256,8 +308,9 @@ function render() {
 				state.people.push({
 					id: crypto.randomUUID(),
 					name,
-					emoji: [random(emojis)],
-					streak: streak(),
+					emoji: selection(),
+					checkEmoji: selection(),
+					streak: Number(document.querySelector("#person-streak").value),
 					at: Date.now(),
 				});
 				save();
@@ -319,7 +372,11 @@ function editPerson(id) {
 	if (!p) return;
 	showSheet(
 		c("edit"),
-		`<form id="edit-person"><label class="label" for="edit-name">${c("name")}</label><input class="field" id="edit-name" value="${escape(p.name)}" maxlength="60" required><button class="primary" type="submit">${c("save")}</button></form>${action("person-check", c("check"))}${p.emoji.length ? action("person-clear", c("clear")) : ""}${action("person-remove", c("remove"), "danger")}${closeButton()}`,
+		`<form id="edit-person"><label class="label" for="edit-name">${c("name")}</label><input class="field" id="edit-name" value="${escape(p.name)}" maxlength="60" required>${contactFields("edit", p.streak)}<button class="primary" type="submit">${c("save")}</button></form>${action("person-check", c("check"))}${p.emoji.length ? action("person-clear", c("clear")) : ""}${action("person-remove", c("remove"), "danger")}${closeButton()}`,
+	);
+	const selection = bindContactFields(
+		sheet.querySelector("#edit-person"),
+		p.checkEmoji,
 	);
 	sheet.querySelector("#edit-person").addEventListener("submit", (event) => {
 		event.preventDefault();
@@ -330,6 +387,9 @@ function editPerson(id) {
 			return;
 		}
 		p.name = input.value.trim();
+		p.streak = Number(sheet.querySelector("#edit-streak").value);
+		p.checkEmoji = selection();
+		if (p.emoji.length) p.emoji = selection();
 		save();
 		modal.close();
 		render();
@@ -339,7 +399,10 @@ function editPerson(id) {
 		.addEventListener("input", (event) => event.target.setCustomValidity(""));
 	const modify = (kind) => {
 		if (kind === "check") {
-			p.emoji = [random(emojis)];
+			if (!sheet.querySelector("#edit-person").reportValidity()) return;
+			p.streak = Number(sheet.querySelector("#edit-streak").value);
+			p.checkEmoji = selection();
+			p.emoji = [...p.checkEmoji];
 			p.at = Date.now();
 		} else if (kind === "clear") {
 			p.emoji = [];
@@ -403,7 +466,7 @@ document.addEventListener("click", (event) => {
 	}
 	if (key === "check-all") {
 		state.people.forEach((p) => {
-			p.emoji = [random(emojis)];
+			p.emoji = [...p.checkEmoji];
 			p.at = Date.now();
 		});
 		save();
